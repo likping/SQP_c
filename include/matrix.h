@@ -1,299 +1,85 @@
-/*
- * @Author: HeYuwei
- * @Date: 2022-03-27 19:10:22
- * @LastEditors: Heyuwei
- * @LastEditTime: 2022-07-08 11:24:34
- * @FilePath: \SQP_c\include\matrix.h
- * @Description: 矩阵/向量联合运算头文件
- *
- * Copyright (c) 2022 by Heyuwei, All Rights Reserved.
- */
-#include <stdio.h>
-#include <malloc.h>
-#include <stdlib.h>
-#include "vector.h"
-#include "index_set.h"
-
-#pragma once
-
-/**
- * Definition of a  @ref _Matrix structure to hold the matrix entries.
- * A new matrix can be created using the @ref matrix_alloc function.
- */
-struct _Matrix
-{
-  /** The number  of rows in the matrix */
-  int row_size;
-
-  /** The number of columns in the matrix */
-  int col_size;
-
-  /** The individual entries in the matrix */
-  double **matrix_entry;
+#include<stdio.h>
+#include<malloc.h>
+#include<stdlib.h>
+//这是C的宏定义表示，没有定义C_Matrix就包含下面的代码否则不包含
+#ifndef C_Matrix
+struct _Matrix{
+    int row_size;
+    int col_size;
+    float* *matrix_entry; //矩阵入口
 };
-
+typedef struct _Matrix Matrix; //矩阵类型
+void matrix_print(Matrix *matrix); //打印整个矩阵
+void matrix_print_part(Matrix *matrix,int start_row,int start_cole);//以star_index开始的列开始打印
+void matrix_fill(Matrix *matrix);//使用从标准输入得到的数值填充整个矩阵
+Matrix * matrix_callalloc(int matrix_size);//初始化一个单位阵
+Matrix * matrix_alloc(int row_size,int col_size);//分配给矩阵内存,返回的是内存块的地址
+void matrix_copy(Matrix *matrix1,Matrix *matrix2);//将矩阵1复杂内容给矩阵2，两个矩阵在不同的地址内存块中
+Matrix * matrix_multiply(const Matrix *matrix1,const Matrix *matrix2);//矩阵1乘矩阵2，返回一个新的矩阵
+Matrix * matrix_pow(Matrix *matrix,int n);//矩阵自乘n次
+void matrix_free(Matrix *matrix);//释放矩阵
+void row_divide(Matrix *matrix,int pivot);//将矩阵从pivot行处分割开
 /**
- * Represents the @link _Matrix matrix structure@endlink which holds the matrix entries.
- * to initialise a new Matrix, simply create a variable of this type
- * and initialise to NULL if necessary
- *
- * @see matrix_alloc
+ * 矩阵行操作
+ * @param multiplier_matrix  保存用于行reducation的各种乘数矩阵
+ * @param matrix 用于行操作的矩阵
+ * @param pivot 该矩阵从pivot位置开始被使用
+ * @param row_index 在row_index处进行行操作的
  */
-
-typedef struct _Matrix Matrix;
-
+void row_operation(Matrix *multiplier_matrix,Matrix *matrix,int pivot,int row_index);//
 /**
- * @description: 打印matrix所指向的矩阵
- * @param {Matrix} *matrix
- * @return {*}
+ * 行阶梯reduction矩阵
+ * @param matrix 操作的矩阵
+ * @param zero_control  控制一行零的最大个数
  */
-void matrix_print(const Matrix *matrix);
+void matrix_row_reduce(Matrix *matrix,int zero_control);
+/**
+ * @brief 从一个矩阵中减去另一的矩阵
+ * @param result 执行减法操作后的矩阵
+ * @param matrix1 减矩阵
+ * @param matrix2 被减矩阵
+ */
+void matrix_subtract(Matrix *result,Matrix matrix1,Matrix matrix2);
+/**
+ * @brief  对一个矩阵执行LU decomposition
+ * @param  upper_triangular  指向在哪个矩阵进行操作
+ * @param  lower_triangular  指向低的triangular矩阵
+ * @note   在调用该函数之前应该使用matrix_callalloc分配内存给低triangular矩
+ */
+void LU_decompose(Matrix *upper_triangular ,Matrix * lower_triangular);
+/**
+ * @brief 矩阵相加
+ * @param result  矩阵相加后得到的结果
+ * @param matrix1 第一个矩阵
+ * @param matrix2 第二个矩阵 
+ * 
+ */
+void matrix_add(Matrix *result , Matrix *matrix1,Matrix *matrix2);
 
 /**
- * @description: 打印matrix的一部分
- * @param {Matrix} *matrix
- * @param {int} start_index
- * @return {*}
+ * @brief 对矩阵进行反转操作
+ * @param inverse_matrix 将要被反转的矩阵
  */
-void matrix_print_part(Matrix *matrix, int start_index);
+void matrix_invert(Matrix *inverse_matrix);
 
 /**
- * @description: 通过scanf手动填充矩阵
- * @param {Matrix} *matrix
- * @return {*}
+ * @brief 检查两个矩阵有相同的行与列
+ * @param matrix1 矩阵1
+ * @param matrix2 矩阵2 
+ * @return   0表示不相等，非零表示行与列是相等的
  */
-void matrix_fill(Matrix *matrix);
+int matrix_equal_size(Matrix *matrix1,Matrix *matrix2);
 /**
- * @description: 获取矩阵mat第row行第col列的值
- * @param {Matrix} *mat
- * @param {int} row
- * @param {int} col
- * @return {*}
+ * @brief 检查单独一行是否存在很多零
+ * @param matrix 被检查的矩阵
+ * @param control_index 单独一行可以被包含的零的个数 
+ * 
  */
-double matrix_get_value(const Matrix *mat, int row, int col);
-
+void error_zeros(Matrix *matrix,int control_index);
 /**
- * @description:设定矩阵mat第row行第col列的值
- * @param {Matrix} *mat
- * @param {int} row
- * @param {int} col
- * @param {double} value
- * @return {*}
- */
-void matrix_set_value(Matrix *mat, int row, int col, double value);
-/**
- * @description: 申请一个单位阵
- * @param {int} matrix_size
- * @return {*}
- */
-Matrix *matrix_callalloc(int matrix_size);
-
-/**
- * @description: 申请一个矩阵并分配存储空间
- * @param {int} row_size 行
- * @param {int} col_size 列
- * @return {*}
- */
-Matrix *matrix_alloc(int row_size, int col_size);
-
-/**
- * @description: 矩阵复制,将matrix1复制到matrix2
- * @param {Matrix} *matrix1 源 矩阵指针
- * @param {Matrix} *matrix2 目标矩阵指针
- * @return {*}
- */
-void matrix_copy(Matrix *matrix1, Matrix *matrix2);
-
-/**
- * @description: 矩阵乘法,将matrix1与matrix2相乘,返回一个指向结果的指针
- * @param {Matrix} *matrix1
- * @param {Matrix} *matrix2
- * @return {*} 乘法运算结果,需要调用者手动释放
- */
-Matrix *matrix_multiply(const Matrix *matrix1, const Matrix *matrix2);
-
-/**
- * @description: 矩阵求幂
- * @param {Matrix} *matrix
- * @param {int} index
- * @return {*} 求幂运算的结果,需要调用者手动释放
- */
-Matrix *matrix_pow(Matrix *matrix, int index);
-
-/**
- * @description: 释放存储空间
- * @param {Matrix} *matrix
- * @return {*}
- */
-void matrix_free(Matrix *matrix);
-
-/**
- * @description: 矩阵的第i行除以第i行,第pivot列的值
- * @param {Matrix} *matrix
- * @param {int} pivot 列坐标
- * @return {*}
- */
-void row_divide(Matrix *matrix, int pivot);
-
-/**
- * Row operations on the matrix
- *
- * @param multiplier_matrix    A matrix to store the various multipliers used
- *                                             in row reduction
- * @param matrix          A matrix on which to carry out the row
- *                                  operations
- * @param pivot            The pivot position of the matrix to use
- * @param  row_index   The row number on which to carry out row operations
- */
-
-/**
- * @description: 对矩阵的行进行操作
- * @param {Matrix} *multiplier_matrix
- * @param {Matrix} *matrix
- * @param {int} pivot
- * @param {int} row_index
- * @return {*}
- */
-void row_operation(Matrix *multiplier_matrix, Matrix *matrix, int pivot, int row_index);
-
-/**
- * Adds one matrix to another
- *
- * @param result        A  matrix to hold the result of the addition
- * @param matrix1     The first matrix for the addition
- * @param matrix2     The second matrix for the addition
- */
-
-void matrix_add(Matrix *result, Matrix *matrix1, Matrix *matrix2);
-
-/**
- * Checks if two matrices have equal rows and columns
- *
- * @param matrix1    The first matrix
- * @param matrix2    The second matrix
- * @return          Non-zero if the matrix row and columns  are equal, zero if they
- *                        are not equal.
- */
-int matrix_equal_size(Matrix *matrix1, Matrix *matrix2);
-
-/**
- * Checks  if there are too many zeros in a single line
- *
- * @param matrix The matrix which is to be checked
- * @param control_index    The maximum amount of zero's that can be contained
- *                                         in a single row
- */
-void error_zeros(Matrix *matrix, int control_index);
-
-/**
- * Function to terminate an application in case of an error
- *
- *  @param string     Message to displayed to stdout in case of an error
+ * @brief 当错误出现时终结一个应用
+ * @param string 报错信息 
+ * 
  */
 void terminate(char *string);
-
-/**
- * Function to compute F2-norm of A
- *
- *  @param matrix     A Matrix
- *
- *  @return double    F2norm of a matrix
- */
-double matrix_F2norm(Matrix *matrix);
-/**
- * @description:矩阵求逆
- * @param {Matrix} *mat
- * @param {Matrix} *inv
- * @return {*}
- */
-void matrix_inverse(Matrix *mat, Matrix *inv);
-/**
- * @description: 一维数组转换为矩阵对象
- * @param {double} *array 数组指针
- * @param {int} rowsize 行数
- * @param {int} colsize 列数
- * @param {Matrix} *mat 指向Matrix的指针
- * @return {*}
- */
-void array_2_matrix(double *array, const int rowsize, const int colsize, Matrix *mat);
-
-/**
- * @description: 使用一个常数填充一个矩阵
- * @param {Matrix} *mat
- * @param {double} a
- * @return {*}
- */
-void matrix_fill_const(Matrix *mat, double a);
-
-/**
- * @description: 矩阵Lu分解
- * @param {Matrix} *mat
- * @param {Matrix} *L
- * @param {Matrix} *U
- * @return {*}
- */
-void matrix_lu_depose(Matrix *mat, Matrix *L, Matrix *U);
-
-/**
- * @description:矩阵乘向量
- * @param {Matrix} *mat
- * @param {Vector} *a
- * @param {Vector} *mat_a
- * @return {*}
- */
-void matrix_mutiply_vector(const Matrix *mat, const Vector *a, Vector *mat_a);
-
-/**
- * @description: 向量乘矩阵
- * @param {Vector} *a
- * @param {Matrix} *mat
- * @param {Vector} *mat_a
- * @return {*}
- */
-void vector_mutiply_matrix(const Vector *a, const Matrix *mat, Vector *mat_a);
-/**
- * @description: 通过索引集Index_set取子矩阵
- * @param {Matrix} *A
- * @param {Index_set} *index_set
- * @param {Matrix} *subA
- * @return {*}
- */
-void matrix_submatrix_by_rowindex_set(const Matrix *A, const Index_set *index_set, Matrix *subA);
-/**
- * @description:矩阵转置
- * @param {Matrix} *mat
- * @param {Matrix} *matT
- * @return {*}
- */
-void matrix_transpose(const Matrix *mat, Matrix *matT);
-/**
- * @description: 列向量乘列向量的转置
- * @param {Vector} *V
- * @param {Vector} *W
- * @param {Matrix} *VWT
- * @return {*}
- */
-void vector_mutiply_vectorT(const Vector *V, const Vector *W, Matrix *VWT);
-/**
- * @description: 矩阵乘一个常数
- * @param {Matrix} *A
- * @param {double} k
- * @param {Matrix} *kA
- * @return {*}
- */
-void matrix_mutiply_const(const Matrix *A, double k, Matrix *kA);
-
-void vector_log(const Vector *v);
-void matrix_log(const Matrix *mat);
-/**
- * @description: 判断矩阵是否具有Nan
- * @param {Matrix} *mat
- * @return {*}
- */
-int matrix_have_na(const Matrix *mat);
-/**
- * @description: 判断向量中是否含有nan
- * @param {Vector} *v
- * @return {*}
- */
-int vector_have_na(const Vector *v);
+#endif
